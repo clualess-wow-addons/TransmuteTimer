@@ -1,0 +1,8 @@
+## Interface: 11507
+## Title: TransmuteTimer
+## Notes: Small movable timer for the shared Alchemy transmute cooldown.
+## Author: pankotsias
+## Version: 1.0
+## SavedVariables: TransmuteTimerDB
+
+TransmuteTimer.lua
