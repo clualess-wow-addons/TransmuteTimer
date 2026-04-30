@@ -213,6 +213,7 @@ local function CreateFrame_TT()
     frame:SetMovable(true)
     frame:EnableMouse(true)
     frame:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    frame:RegisterForDrag("LeftButton")
     frame:SetClampedToScreen(true)
 
     if frame.SetBackdrop then
@@ -242,25 +243,17 @@ local function CreateFrame_TT()
     text:SetText("Transmute")
     text:SetTextColor(1, 0.82, 0)
 
-    -- Shift + left-click drags.
-    frame:SetScript("OnMouseDown", function(self, btn)
-        if btn == "LeftButton" and IsShiftKeyDown() then
-            self:StartMoving()
-            self.isMoving = true
-        end
-    end)
-    frame:SetScript("OnMouseUp", function(self, btn)
-        if btn == "LeftButton" and self.isMoving then
-            self:StopMovingOrSizing()
-            self.isMoving = false
-            SavePosition()
-        end
+    -- Drag with left-click; bare click (no movement) still casts.
+    frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
+    frame:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        SavePosition()
     end)
 
     frame:SetScript("OnClick", function(self, button)
         if button == "RightButton" then
             ToggleDropDownMenu(1, nil, dropdown, self, 0, 0)
-        elseif button == "LeftButton" and not IsShiftKeyDown() then
+        elseif button == "LeftButton" then
             local id = CurrentSpellID()
             if id then CraftTransmute(id) end
         end
@@ -272,9 +265,9 @@ local function CreateFrame_TT()
         local name = id and GetSpellInfo(id) or "(none)"
         GameTooltip:AddLine("TransmuteTimer")
         GameTooltip:AddLine("Selected: " .. name, 1, 1, 1)
-        GameTooltip:AddLine("Left-click: craft (Alchemy must be open)", 0.7, 0.7, 0.7)
+        GameTooltip:AddLine("Left-click: craft", 0.7, 0.7, 0.7)
         GameTooltip:AddLine("Right-click: choose transmute", 0.7, 0.7, 0.7)
-        GameTooltip:AddLine("Shift + drag: move", 0.7, 0.7, 0.7)
+        GameTooltip:AddLine("Drag: move", 0.7, 0.7, 0.7)
         GameTooltip:Show()
     end)
     frame:SetScript("OnLeave", function() GameTooltip:Hide() end)
