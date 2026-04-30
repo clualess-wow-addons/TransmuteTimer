@@ -2,3 +2,5 @@
 *.bak
 *.swp
 *.tmp
+.omc/
+.claude/
