@@ -1,4 +1,4 @@
-## Interface: 11507
+## Interface: 11500, 11501, 11502, 11503, 11504, 11505, 11506, 11507, 11508
 ## Title: TransmuteTimer
 ## Notes: Small movable timer for the shared Alchemy transmute cooldown.
 ## Author: pankotsias
