@@ -2,7 +2,8 @@
 ## Title: TransmuteTimer
 ## Notes: Small movable timer for the shared Alchemy transmute cooldown.
 ## Author: pankotsias
-## Version: 1.0
+## Version: @project-version@
 ## SavedVariables: TransmuteTimerDB
+## X-Curse-Project-ID: 1532893
 
 TransmuteTimer.lua
