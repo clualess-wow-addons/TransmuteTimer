@@ -297,7 +297,6 @@ end
 local loader = CreateFrame("Frame")
 loader:RegisterEvent("ADDON_LOADED")
 loader:RegisterEvent("PLAYER_LOGIN")
-loader:RegisterEvent("LEARNED_SPELL_IN_TAB")
 loader:RegisterEvent("SPELLS_CHANGED")
 loader:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" and arg1 == ADDON_NAME then
@@ -307,7 +306,7 @@ loader:SetScript("OnEvent", function(_, event, arg1)
         end
         CreateFrame_TT()
         ApplyPosition()
-    elseif event == "PLAYER_LOGIN" or event == "LEARNED_SPELL_IN_TAB" or event == "SPELLS_CHANGED" then
+    elseif event == "PLAYER_LOGIN" or event == "SPELLS_CHANGED" then
         if not TransmuteTimerDB.selectedSpellID then
             TransmuteTimerDB.selectedSpellID = FindKnownTransmute()
         end
