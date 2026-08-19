@@ -307,6 +307,12 @@ loader:SetScript("OnEvent", function(_, event, arg1)
         CreateFrame_TT()
         ApplyPosition()
     elseif event == "PLAYER_LOGIN" or event == "SPELLS_CHANGED" then
+        if event == "PLAYER_LOGIN" then
+            -- print() skips the client's {square}->icon chat substitution, so apply it ourselves
+            C_Timer.After(3, function()
+                print(C_ChatInfo.ReplaceIconAndGroupExpressions("{square} |cffffd200TransmuteTimer:|r |cff69ccf0Found a bug? Report it on GitHub (PRs welcome) - github.com/clualess-wow-addons/TransmuteTimer|r"))
+            end)
+        end
         if not TransmuteTimerDB.selectedSpellID then
             TransmuteTimerDB.selectedSpellID = FindKnownTransmute()
         end
