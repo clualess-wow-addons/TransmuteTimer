@@ -1,6 +1,6 @@
 # TransmuteTimer
 
-A tiny World of Warcraft Classic Era addon for alchemists. Shows your shared transmute cooldown on screen and lets you craft any transmute with one click.
+A tiny World of Warcraft Classic Era (and WoW: Forever) addon for alchemists. Shows your shared transmute cooldown on screen and lets you craft any transmute with one click.
 
 ## What it does
 
@@ -13,7 +13,7 @@ A tiny World of Warcraft Classic Era addon for alchemists. Shows your shared tra
 ## Install
 
 1. Download or clone this repo
-2. Drop the `TransmuteTimer` folder into `World of Warcraft/_classic_era_/Interface/AddOns/`
+2. Drop the `TransmuteTimer` folder into `World of Warcraft/_classic_era_/Interface/AddOns/` (WoW: Forever: `World of Warcraft/_forever_/Interface/AddOns/`)
 3. Restart the game (or `/reload`)
 
 ## Slash commands
