@@ -15,6 +15,7 @@ local TRANSMUTE_SPELLS = {
     17565, -- Transmute: Life to Earth
     17566, -- Transmute: Earth to Life
     25146, -- Transmute: Elemental Fire (Heart of Fire -> Elemental Fire)
+    1317279, -- Transmute: Legionite (WoW: Forever only)
 }
 
 -- Map each transmute spell to the item ID of its result so we can show the
@@ -339,7 +340,20 @@ local loader = CreateFrame("Frame")
 loader:RegisterEvent("ADDON_LOADED")
 loader:RegisterEvent("PLAYER_LOGIN")
 loader:RegisterEvent("SPELLS_CHANGED")
-loader:SetScript("OnEvent", function(_, event, arg1)
+loader:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
+loader:SetScript("OnEvent", function(_, event, arg1, _, arg3)
+    if event == "UNIT_SPELLCAST_SUCCEEDED" then
+        -- Follow the transmute the player just made, so the timer shows it without a right-click.
+        local spellID = arg3
+        if IsSecret(spellID) or spellID == TransmuteTimerDB.selectedSpellID then return end
+        for _, id in ipairs(TRANSMUTE_SPELLS) do
+            if id == spellID then
+                SetSelectedTransmute(id)
+                return
+            end
+        end
+        return
+    end
     if event == "ADDON_LOADED" and arg1 == ADDON_NAME then
         TransmuteTimerDB = TransmuteTimerDB or {}
         for k, v in pairs(DEFAULTS) do

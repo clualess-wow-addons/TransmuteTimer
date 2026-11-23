@@ -7,7 +7,7 @@ A tiny World of Warcraft Classic Era (and WoW: Forever) addon for alchemists. Sh
 - **Live countdown** — a small box on your screen shows time remaining until your next transmute is ready (`Xd Yh` / `Hh Mm` / `Mm Ss`)
 - **Click to craft** — when ready, the box turns green and says "Click to Transmute". Left-click and it crafts immediately, no profession window dance
 - **All 12 transmutes supported** — bars (Gold, Truesilver, Arcanite), all elemental essences (Air, Fire, Earth, Water, Life, Undeath), and Elemental Fire
-- **Pick your transmute** — right-click the button to choose which one you want to craft. Each shows the icon of the result item
+- **Pick your transmute** — right-click the button to choose which one you want to craft. Each shows the icon of the result item. After you transmute, the timer switches to that transmute on its own
 - **Movable** — shift + left-click and drag to put it wherever you want
 
 ## Install
