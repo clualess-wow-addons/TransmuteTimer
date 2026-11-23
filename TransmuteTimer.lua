@@ -15,6 +15,7 @@ local TRANSMUTE_SPELLS = {
     17565, -- Transmute: Life to Earth
     17566, -- Transmute: Earth to Life
     25146, -- Transmute: Elemental Fire (Heart of Fire -> Elemental Fire)
+    1317279, -- Transmute: Legionite (WoW: Forever only)
 }
 
 -- Map each transmute spell to the item ID of its result so we can show the
@@ -34,13 +35,37 @@ local TRANSMUTE_RESULT_ITEM = {
     [25146] = 7068,  -- Elemental Fire
 }
 
+-- API shims. Classic Era still has the old globals; WoW: Forever (interface 16xxx) runs on the
+-- modern client, where GetSpellInfo, GetSpellCooldown, GetSpellTexture and the classic trade skill
+-- functions are gone and only the C_ namespaces remain.
+local GetSpellName = (C_Spell and C_Spell.GetSpellName) or function(id) return (GetSpellInfo(id)) end
+local GetSpellIcon = (C_Spell and C_Spell.GetSpellTexture) or GetSpellTexture
+local GetItemIconByID = (C_Item and C_Item.GetItemIconByID) or GetItemIcon
+
+local function IsSecret(v)
+    return issecretvalue ~= nil and issecretvalue(v) == true
+end
+
+-- Returns start, duration. The third value is true when the client hides the cooldown (a secret
+-- value on clients that restrict cooldowns), so the display can keep what it showed last.
+local function GetCooldown(id)
+    if C_Spell and C_Spell.GetSpellCooldown then
+        local info = C_Spell.GetSpellCooldown(id)
+        if IsSecret(info) then return nil, nil, true end
+        if type(info) ~= "table" then return nil, nil end
+        if IsSecret(info.startTime) or IsSecret(info.duration) then return nil, nil, true end
+        return info.startTime, info.duration
+    end
+    return GetSpellCooldown(id)
+end
+
 local function GetTransmuteIcon(spellID)
     local itemID = TRANSMUTE_RESULT_ITEM[spellID]
     if itemID then
-        local tex = GetItemIcon(itemID)
+        local tex = GetItemIconByID(itemID)
         if tex then return tex end
     end
-    return GetSpellTexture(spellID)
+    return GetSpellIcon(spellID)
 end
 
 local DEFAULTS = {
@@ -74,7 +99,10 @@ local function FormatRemaining(secs)
 end
 
 local function IsTransmuteKnown(id)
-    return (IsPlayerSpell and IsPlayerSpell(id)) or (IsSpellKnown and IsSpellKnown(id)) or false
+    return (IsPlayerSpell and IsPlayerSpell(id))
+        or (C_SpellBook and C_SpellBook.IsSpellKnown and C_SpellBook.IsSpellKnown(id))
+        or (IsSpellKnown and IsSpellKnown(id))
+        or false
 end
 
 local function FindKnownTransmute()
@@ -143,7 +171,8 @@ UpdateDisplay = function()
         local tex = GetTransmuteIcon(id)
         if tex then icon:SetTexture(tex) end
     end
-    local start, duration = GetSpellCooldown(id)
+    local start, duration, hidden = GetCooldown(id)
+    if hidden then return end
     if not start or not duration or duration <= 1.5 then
         ShowReady()
         return
@@ -169,11 +198,24 @@ local function SetSelectedTransmute(spellID)
     UpdateDisplay()
 end
 
+local ALCHEMY_SKILL_LINE = 171
+
 -- TSM-style direct trade-skill craft. Requires the Alchemy window to be open.
 local function CraftTransmute(spellID)
-    local targetName = GetSpellInfo(spellID)
+    local targetName = GetSpellName(spellID)
     if not targetName then
         print("|cff33ff99TransmuteTimer|r: unknown spell.")
+        return
+    end
+    -- Modern profession UI (WoW: Forever): the recipe ID is the spell ID. The client only crafts
+    -- with the profession window open, so a click with it shut opens it and asks for another click.
+    if not GetNumTradeSkills and C_TradeSkillUI and C_TradeSkillUI.CraftRecipe then
+        if not (ProfessionsFrame and ProfessionsFrame:IsShown()) then
+            if C_TradeSkillUI.OpenTradeSkill then C_TradeSkillUI.OpenTradeSkill(ALCHEMY_SKILL_LINE) end
+            print("|cff33ff99TransmuteTimer|r: Alchemy window opened, click again to craft " .. targetName .. ".")
+            return
+        end
+        C_TradeSkillUI.CraftRecipe(spellID, 1)
         return
     end
     if not GetNumTradeSkills or GetNumTradeSkills() == 0 then
@@ -194,7 +236,7 @@ local function InitDropdown(_, level)
     if not level then return end
     local current = TransmuteTimerDB.selectedSpellID
     for _, id in ipairs(TRANSMUTE_SPELLS) do
-        local name = GetSpellInfo(id) or ("Spell " .. id)
+        local name = GetSpellName(id) or ("Spell " .. id)
         local known = IsTransmuteKnown(id)
         local info = UIDropDownMenu_CreateInfo()
         info.text = known and name or (name .. "  |cff808080(not learned)|r")
@@ -262,7 +304,7 @@ local function CreateFrame_TT()
     frame:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         local id = CurrentSpellID()
-        local name = id and GetSpellInfo(id) or "(none)"
+        local name = id and GetSpellName(id) or "(none)"
         GameTooltip:AddLine("TransmuteTimer")
         GameTooltip:AddLine("Selected: " .. name, 1, 1, 1)
         GameTooltip:AddLine("Left-click: craft", 0.7, 0.7, 0.7)
@@ -298,7 +340,20 @@ local loader = CreateFrame("Frame")
 loader:RegisterEvent("ADDON_LOADED")
 loader:RegisterEvent("PLAYER_LOGIN")
 loader:RegisterEvent("SPELLS_CHANGED")
-loader:SetScript("OnEvent", function(_, event, arg1)
+loader:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
+loader:SetScript("OnEvent", function(_, event, arg1, _, arg3)
+    if event == "UNIT_SPELLCAST_SUCCEEDED" then
+        -- Follow the transmute the player just made, so the timer shows it without a right-click.
+        local spellID = arg3
+        if IsSecret(spellID) or spellID == TransmuteTimerDB.selectedSpellID then return end
+        for _, id in ipairs(TRANSMUTE_SPELLS) do
+            if id == spellID then
+                SetSelectedTransmute(id)
+                return
+            end
+        end
+        return
+    end
     if event == "ADDON_LOADED" and arg1 == ADDON_NAME then
         TransmuteTimerDB = TransmuteTimerDB or {}
         for k, v in pairs(DEFAULTS) do
@@ -310,7 +365,11 @@ loader:SetScript("OnEvent", function(_, event, arg1)
         if event == "PLAYER_LOGIN" then
             -- print() skips the client's {square}->icon chat substitution, so apply it ourselves
             C_Timer.After(3, function()
-                print(C_ChatInfo.ReplaceIconAndGroupExpressions("{square} |cffffd200TransmuteTimer:|r |cff69ccf0Found a bug? Report it on GitHub (PRs welcome) - github.com/clualess-wow-addons/TransmuteTimer|r"))
+                local msg = "{square} |cffffd200TransmuteTimer:|r |cff69ccf0Found a bug? Report it on GitHub (PRs welcome) - github.com/clualess-wow-addons/TransmuteTimer|r"
+                if C_ChatInfo and C_ChatInfo.ReplaceIconAndGroupExpressions then
+                    msg = C_ChatInfo.ReplaceIconAndGroupExpressions(msg)
+                end
+                print(msg)
             end)
         end
         if not TransmuteTimerDB.selectedSpellID then
