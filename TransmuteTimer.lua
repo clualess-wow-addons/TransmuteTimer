@@ -48,15 +48,25 @@ end
 
 -- Returns start, duration. The third value is true when the client hides the cooldown (a secret
 -- value on clients that restrict cooldowns), so the display can keep what it showed last.
+-- GetTime() counts from when the computer booted. A cooldown that started before that (a 48h
+-- transmute across a reboot) comes back with its start wrapped 2^32 ms into the future, which
+-- showed as "49d 17h" left. Undo the wrap.
+local TIME_WRAP = 2 ^ 32 / 1000
+
+local function Unwrap(start, duration)
+    if start and start > GetTime() then start = start - TIME_WRAP end
+    return start, duration
+end
+
 local function GetCooldown(id)
     if C_Spell and C_Spell.GetSpellCooldown then
         local info = C_Spell.GetSpellCooldown(id)
         if IsSecret(info) then return nil, nil, true end
         if type(info) ~= "table" then return nil, nil end
         if IsSecret(info.startTime) or IsSecret(info.duration) then return nil, nil, true end
-        return info.startTime, info.duration
+        return Unwrap(info.startTime, info.duration)
     end
-    return GetSpellCooldown(id)
+    return Unwrap(GetSpellCooldown(id))
 end
 
 local function GetTransmuteIcon(spellID)
